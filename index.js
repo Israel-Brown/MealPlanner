@@ -164,7 +164,7 @@ const mealSchema = new mongoose.Schema({
   ingredients: [{ type: String, required: true }],
   date: { type: Date, default: Date.now }
 });
-const Meal = mongoose.model('Meal', mealSchema);
+const Meal = mongoose.model('Meal', mealSchema, 'meals');
 
 app.get('/api/v1/meals', async (req, res) => {
   try {
