@@ -403,16 +403,7 @@
           }
         }
       },
-      "securitySchemes": {
-        "bearerAuth": {
-          "type": "http",
-          "scheme": "bearer",
-          "bearerFormat": "JWT",
-          "description": "JWT token obtained from /login"
-        }
-      }
-    },
-    "/meals/{id}": {
+      "/meals/{id}": {
       "get": {
         "summary": "Get meals",
         "description": "Retrieve a list of available meals.",
@@ -591,5 +582,14 @@
         }
       }
     }
-  }
+  },
+      "securitySchemes": {
+        "bearerAuth": {
+          "type": "http",
+          "scheme": "bearer",
+          "bearerFormat": "JWT",
+          "description": "JWT token obtained from /login"
+        }
+      }
+    }
   
