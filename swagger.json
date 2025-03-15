@@ -1,415 +1,415 @@
 {
-  "openapi": "3.0.3",
-  "info": {
-    "title": "Grocery List API",
-    "version": "1.0.0"
-  },
-  "servers": [
-    {
-      "url": "https://mealplanner-y9z9.onrender.com/api/v1",
-      "description": "Production server on Render"
-    }
-  ],
-  "paths": {
-    "/register": {
-      "post": {
-        "summary": "Register a new user",
-        "description": "Creates a new user account with email, password, and name.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserRegistration"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "User registered successfully",
+    "openapi": "3.0.3",
+    "info": {
+      "title": "Grocery List API",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "https://mealplanner-y9z9.onrender.com/api/v1",
+        "description": "Production server on Render"
+      }
+    ],
+    "paths": {
+      "/register": {
+        "post": {
+          "summary": "Register a new user",
+          "description": "Creates a new user account with email, password, and name.",
+          "requestBody": {
+            "required": true,
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/User"
+                  "$ref": "#/components/schemas/UserRegistration"
                 }
               }
             }
           },
-          "400": {
-            "description": "Invalid input (e.g., email already exists)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
+          "responses": {
+            "201": {
+              "description": "User registered successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/User"
+                  }
                 }
               }
-            }
-          }
-        },
-        "security": []
-      }
-    },
-    "/login": {
-      "post": {
-        "summary": "User login",
-        "description": "Authenticates a user and returns a JWT token.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserLogin"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful login with JWT token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "token": {
-                      "type": "string",
-                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZDVjNjdlNzQ0ODQ3NGUwMjQyMjQwNiIsImlhdCI6MTc0MjA2MzgyNSwiZXhwIjoxNzQyMDY3NDI1fQ.UBDZoJIt3bsJ-g6pDK9Vjk760NJ_8dPuH5a9CWri8h0"
-                    }
+            },
+            "400": {
+              "description": "Invalid input (e.g., email already exists)",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
                   }
                 }
               }
             }
           },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "security": []
-      }
-    },
-    "/grocery-list": {
-      "get": {
-        "summary": "Get grocery list",
-        "description": "Retrieves the grocery list for the authenticated user.",
-        "security": [
-          { "bearerAuth": [] }
-        ],
-        "responses": {
-          "200": {
-            "description": "Grocery list retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GroceryList"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
+          "security": []
         }
       },
-      "post": {
-        "summary": "Add to grocery list",
-        "description": "Adds items to the grocery list for the authenticated user.",
-        "security": [
-          { "bearerAuth": [] }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GroceryListRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Items added to grocery list",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GroceryList"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input (e.g., missing or empty items array)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "summary": "Update grocery list",
-        "description": "Updates the grocery list for the authenticated user by replacing the entire items array.",
-        "security": [
-          { "bearerAuth": [] }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GroceryListRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Grocery list updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GroceryList"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input (e.g., missing or invalid items array)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete from grocery list",
-        "description": "Removes an item from the grocery list for the authenticated user.",
-        "security": [
-          { "bearerAuth": [] }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "itemId",
-            "schema": {
-              "type": "string"
-            },
+      "/login": {
+        "post": {
+          "summary": "User login",
+          "description": "Authenticates a user and returns a JWT token.",
+          "requestBody": {
             "required": true,
-            "description": "ID of the item to delete"
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Item deleted from grocery list"
-          },
-          "400": {
-            "description": "Invalid input (e.g., missing itemId)",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/UserLogin"
                 }
               }
             }
           },
-          "404": {
-            "description": "Grocery list or item not found",
+          "responses": {
+            "200": {
+              "description": "Successful login with JWT token",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "token": {
+                        "type": "string",
+                        "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZDVjNjdlNzQ0ODQ3NGUwMjQyMjQwNiIsImlhdCI6MTc0MjA2MzgyNSwiZXhwIjoxNzQyMDY3NDI1fQ.UBDZoJIt3bsJ-g6pDK9Vjk760NJ_8dPuH5a9CWri8h0"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Invalid credentials",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                }
+              }
+            }
+          },
+          "security": []
+        }
+      },
+      "/grocery-list": {
+        "get": {
+          "summary": "Get grocery list",
+          "description": "Retrieves the grocery list for the authenticated user.",
+          "security": [
+            { "bearerAuth": [] }
+          ],
+          "responses": {
+            "200": {
+              "description": "Grocery list",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/GroceryList"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "post": {
+          "summary": "Add to grocery list",
+          "description": "Adds items to the grocery list for the authenticated user.",
+          "security": [
+            { "bearerAuth": [] }
+          ],
+          "requestBody": {
+            "required": true,
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/GroceryListRequest"
                 }
               }
             }
           },
-          "401": {
-            "description": "Unauthorized",
+          "responses": {
+            "201": {
+              "description": "Items added to grocery list",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/GroceryList"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid input (e.g., missing or empty items array)",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "put": {
+          "summary": "Update grocery list",
+          "description": "Updates the grocery list for the authenticated user by replacing the entire items array.",
+          "security": [
+            { "bearerAuth": [] }
+          ],
+          "requestBody": {
+            "required": true,
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/GroceryListRequest"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Grocery list updated",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/GroceryList"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid input (e.g., missing or invalid items array)",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  }
                 }
               }
             }
           }
-        }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "UserRegistration": {
-        "type": "object",
-        "required": ["email", "password", "name"],
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "example": "user@example.com"
-          },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "example": "Passw0rd!"
-          },
-          "name": {
-            "type": "string",
-            "example": "John Doe"
-          }
-        }
-      },
-      "User": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "67d5c67e7448474e02422406"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "example": "user@example.com"
-          },
-          "name": {
-            "type": "string",
-            "example": "John Doe"
-          }
-        }
-      },
-      "UserLogin": {
-        "type": "object",
-        "required": ["email", "password"],
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "example": "user@example.com"
-          },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "example": "Passw0rd!"
-          }
-        }
-      },
-      "GroceryListRequest": {
-        "type": "object",
-        "required": ["items"],
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "example": "67d5c67e7448474e02422408"
-                },
-                "name": {
-                  "type": "string",
-                  "example": "Chicken Breast"
-                },
-                "quantity": {
-                  "type": "number",
-                  "example": 2
+        },
+        "delete": {
+          "summary": "Delete from grocery list",
+          "description": "Removes an item from the grocery list for the authenticated user.",
+          "security": [
+            { "bearerAuth": [] }
+          ],
+          "parameters": [
+            {
+              "in": "query",
+              "name": "itemId",
+              "schema": {
+                "type": "string"
+              },
+              "required": true,
+              "description": "ID of the item to delete"
+            }
+          ],
+          "responses": {
+            "204": {
+              "description": "Item deleted from grocery list"
+            },
+            "400": {
+              "description": "Invalid input (e.g., missing itemId)",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Grocery list or item not found",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  }
                 }
               }
             }
-          }
-        }
-      },
-      "GroceryList": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "string",
-            "example": "67d5c67e7448474e02422406"
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "example": "67d5c67e7448474e02422408"
-                },
-                "name": {
-                  "type": "string",
-                  "example": "Chicken Breast"
-                },
-                "quantity": {
-                  "type": "number",
-                  "example": 2
-                }
-              }
-            }
-          }
-        }
-      },
-      "Error": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "example": 400
-          },
-          "message": {
-            "type": "string",
-            "example": "Invalid request data"
           }
         }
       }
     },
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "JWT token obtained from /login"
+    "components": {
+      "schemas": {
+        "UserRegistration": {
+          "type": "object",
+          "required": ["email", "password", "name"],
+          "properties": {
+            "email": {
+              "type": "string",
+              "format": "email",
+              "example": "user@example.com"
+            },
+            "password": {
+              "type": "string",
+              "format": "password",
+              "example": "Passw0rd!"
+            },
+            "name": {
+              "type": "string",
+              "example": "John Doe"
+            }
+          }
+        },
+        "User": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "example": "67d5c67e7448474e02422406"
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "example": "user@example.com"
+            },
+            "name": {
+              "type": "string",
+              "example": "John Doe"
+            }
+          }
+        },
+        "UserLogin": {
+          "type": "object",
+          "required": ["email", "password"],
+          "properties": {
+            "email": {
+              "type": "string",
+              "format": "email",
+              "example": "user@example.com"
+            },
+            "password": {
+              "type": "string",
+              "format": "password",
+              "example": "Passw0rd!"
+            }
+          }
+        },
+        "GroceryListRequest": {
+          "type": "object",
+          "required": ["items"],
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "67d5c67e7448474e02422408"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Chicken Breast"
+                  },
+                  "quantity": {
+                    "type": "number",
+                    "example": 2
+                  }
+                }
+              }
+            }
+          }
+        },
+        "GroceryList": {
+          "type": "object",
+          "properties": {
+            "userId": {
+              "type": "string",
+              "example": "67d5c67e7448474e02422406"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "67d5c67e7448474e02422408"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Chicken Breast"
+                  },
+                  "quantity": {
+                    "type": "number",
+                    "example": 2
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "integer",
+              "example": 400
+            },
+            "message": {
+              "type": "string",
+              "example": "Invalid request data"
+            }
+          }
+        }
+      },
+      "securitySchemes": {
+        "bearerAuth": {
+          "type": "http",
+          "scheme": "bearer",
+          "bearerFormat": "JWT",
+          "description": "JWT token obtained from /login"
+        }
       }
     }
   }
-}
