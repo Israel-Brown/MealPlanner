@@ -412,7 +412,7 @@
         }
       }
     },
-    "/meals": {
+    "/meals/{id}": {
       "get": {
         "summary": "Get meals",
         "description": "Retrieve a list of available meals.",
