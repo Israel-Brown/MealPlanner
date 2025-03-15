@@ -8,35 +8,45 @@ const { expressjwt: expressJwt } = require('express-jwt');
 
 const app = express();
 const port = 3000;
-const JWT_SECRET = 'your-secure-secret-key'; 
+const JWT_SECRET = 'your-secure-secret-key';
 
 app.use(express.json());
-app.use(expressJwt({ secret: JWT_SECRET, algorithms: ['HS256'] }).unless({ path: ['/api/v1/register', '/api/v1/login', '/', /^\/api-docs\/?.*/] }));
 
+// Set up JWT authentication middleware
+app.use(
+  expressJwt({ secret: JWT_SECRET, algorithms: ['HS256'] }).unless({
+    path: ['/api/v1/register', '/api/v1/login', '/', /^\/api-docs\/?.*/], // Allow these routes without JWT
+  })
+);
+
+// Set up Swagger UI documentation route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 const mongoURI = 'mongodb+srv://Jason:341@cluster0.8elw1gh.mongodb.net/';
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true
-})
+mongoose
+  .connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to MongoDB Atlas: mealPlannerPlus'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .catch((err) => console.error('MongoDB connection error:', err));
 
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  name: { type: String, required: true }
+  name: { type: String, required: true },
 });
 const User = mongoose.model('User', userSchema);
 
 const groceryListSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  items: [{
-    name: { type: String, required: true },
-    quantity: { type: Number, default: 1 }
-  }]
+  items: [
+    {
+      name: { type: String, required: true },
+      quantity: { type: Number, default: 1 },
+    },
+  ],
 });
 const GroceryList = mongoose.model('GroceryList', groceryListSchema);
 
+// User registration route
 app.post('/api/v1/register', async (req, res) => {
   const { email, password, name } = req.body;
   if (!email || !password || !name) {
@@ -56,6 +66,7 @@ app.post('/api/v1/register', async (req, res) => {
   }
 });
 
+// User login route
 app.post('/api/v1/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -73,6 +84,7 @@ app.post('/api/v1/login', async (req, res) => {
   }
 });
 
+// Get grocery list for authenticated user
 app.get('/api/v1/grocery-list', async (req, res) => {
   try {
     let groceryList = await GroceryList.findOne({ userId: req.auth.id });
@@ -82,13 +94,14 @@ app.get('/api/v1/grocery-list', async (req, res) => {
     }
     res.status(200).json({
       userId: groceryList.userId,
-      items: groceryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
+      items: groceryList.items.map((item) => ({ id: item._id, name: item.name, quantity: item.quantity })),
     });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
   }
 });
 
+// Add items to grocery list
 app.post('/api/v1/grocery-list', async (req, res) => {
   const { items } = req.body;
   if (!items || !Array.isArray(items) || items.length === 0) {
@@ -99,17 +112,18 @@ app.post('/api/v1/grocery-list', async (req, res) => {
     if (!groceryList) {
       groceryList = new GroceryList({ userId: req.auth.id, items: [] });
     }
-    groceryList.items.push(...items.map(item => ({ name: item.name, quantity: item.quantity || 1 })));
+    groceryList.items.push(...items.map((item) => ({ name: item.name, quantity: item.quantity || 1 })));
     await groceryList.save();
     res.status(201).json({
       userId: groceryList.userId,
-      items: groceryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
+      items: groceryList.items.map((item) => ({ id: item._id, name: item.name, quantity: item.quantity })),
     });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
   }
 });
 
+// Update grocery list
 app.put('/api/v1/grocery-list', async (req, res) => {
   const { items } = req.body;
   if (!items || !Array.isArray(items)) {
@@ -120,21 +134,22 @@ app.put('/api/v1/grocery-list', async (req, res) => {
     if (!groceryList) {
       groceryList = new GroceryList({ userId: req.auth.id, items: [] });
     }
-    groceryList.items = items.map(item => ({
+    groceryList.items = items.map((item) => ({
       _id: item.id || new mongoose.Types.ObjectId(),
       name: item.name,
-      quantity: item.quantity || 1
+      quantity: item.quantity || 1,
     }));
     await groceryList.save();
     res.status(200).json({
       userId: groceryList.userId,
-      items: groceryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
+      items: groceryList.items.map((item) => ({ id: item._id, name: item.name, quantity: item.quantity })),
     });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
   }
 });
 
+// Delete item from grocery list
 app.delete('/api/v1/grocery-list', async (req, res) => {
   const { itemId } = req.query;
   if (!itemId) {
@@ -146,7 +161,7 @@ app.delete('/api/v1/grocery-list', async (req, res) => {
       return res.status(404).json({ code: 404, message: 'Grocery list not found' });
     }
     const initialLength = groceryList.items.length;
-    groceryList.items = groceryList.items.filter(item => item._id.toString() !== itemId);
+    groceryList.items = groceryList.items.filter((item) => item._id.toString() !== itemId);
     if (groceryList.items.length === initialLength) {
       return res.status(404).json({ code: 404, message: 'Item not found in grocery list' });
     }
@@ -157,10 +172,12 @@ app.delete('/api/v1/grocery-list', async (req, res) => {
   }
 });
 
+// Root route
 app.get('/', (req, res) => {
   res.send('Welcome to Grocery List API! Visit /api-docs for documentation.');
 });
 
+// Start server
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
   console.log(`Swagger UI available at http://localhost:${port}/api-docs`);
