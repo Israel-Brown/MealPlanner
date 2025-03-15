@@ -411,9 +411,7 @@
           "description": "JWT token obtained from /login"
         }
       }
-    }
-  }
-  {
+    },
     "/meals": {
       "get": {
         "summary": "Get meals",
