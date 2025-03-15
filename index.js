@@ -15,7 +15,7 @@ app.use(expressJwt({ secret: JWT_SECRET, algorithms: ['HS256'] }).unless({ path:
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-const mongoURI = 'mongodb+srv://Jason:341@cluster0.8elw1gh.mongodb.net/';
+const mongoURI = 'mongodb+srv://Jason:341@cluster0.8elw1gh.mongodb.net/MealPlannerPlus?retryWrites=true&w=majority';
 mongoose.connect(mongoURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
