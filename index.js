@@ -16,7 +16,7 @@ app.use(expressJwt({ secret: JWT_SECRET, algorithms: ['HS256'] }).unless({ path:
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 const mongoURI = 'mongodb+srv://Jason:341@cluster0.8elw1gh.mongodb.net/';
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true, dbName: 'mealPlannerPlus'
+mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true
 })
   .then(() => console.log('Connected to MongoDB Atlas: mealPlannerPlus'))
   .catch(err => console.error('MongoDB connection error:', err));
