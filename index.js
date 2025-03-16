@@ -1,9 +1,8 @@
-// Improved and Integrated MealPlannerPlus Backend
-
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');  // For password hashing
 const cors = require('cors');
 const { auth } = require('express-oauth2-jwt-bearer');
 const swaggerUi = require('swagger-ui-express');
@@ -13,7 +12,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
 
 // Environment variables
 const PORT = process.env.PORT || 3000;
@@ -59,6 +57,11 @@ const Meal = mongoose.model('Meal', new mongoose.Schema({
   }
 }));
 
+const User = mongoose.model('User', new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+}));
+
 // ✅ Middleware to verify JWT
 function verifyToken(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1];
@@ -75,6 +78,56 @@ function verifyToken(req, res, next) {
 // ✅ Health Check Route
 app.get('/', (req, res) => {
   res.send('MealPlannerPlus Backend is running smoothly.');
+});
+
+// ✅ Register Route
+app.post('/register', async (req, res) => {
+  const { email, password } = req.body;
+
+  // Check if user already exists
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return res.status(400).send('User already exists');
+  }
+
+  // Hash password
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Create new user
+  const newUser = new User({
+    email,
+    password: hashedPassword
+  });
+
+  // Save user to the database
+  await newUser.save();
+  res.status(201).send('User registered successfully');
+});
+
+// ✅ Login Route
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  // Find user by email
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(400).send('Invalid email or password');
+  }
+
+  // Compare password with hashed password in the database
+  const validPassword = await bcrypt.compare(password, user.password);
+  if (!validPassword) {
+    return res.status(400).send('Invalid email or password');
+  }
+
+  // Generate JWT token
+  const token = jwt.sign(
+    { sub: user._id, email: user.email },
+    JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+
+  res.send({ token });
 });
 
 // ✅ Grocery List Routes
