@@ -17,8 +17,6 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 const mongoURI = 'mongodb+srv://Jason:341@cluster0.8elw1gh.mongodb.net/';
 mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
 })
   .then(() => console.log('Connected to MongoDB Atlas: mealPlannerPlus'))
   .catch(err => console.error('MongoDB connection error:', err));
@@ -153,6 +151,74 @@ app.delete('/api/v1/grocery-list', async (req, res) => {
       return res.status(404).json({ code: 404, message: 'Item not found in grocery list' });
     }
     await groceryList.save();
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
+  }
+});
+
+const mealSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  name: { type: String, required: true },
+  calories: { type: Number, required: true },
+  ingredients: [{ type: String, required: true }],
+  date: { type: Date, default: Date.now }
+});
+const Meal = mongoose.model('Meal', mealSchema, 'meals');
+
+app.get('/api/v1/meals', async (req, res) => {
+  try {
+    const meals = await Meal.find({ userId: req.auth.id });
+    res.status(200).json(meals);
+  } catch (error) {
+    res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
+  }
+});
+
+app.post('/api/v1/meals', async (req, res) => {
+  const { name, calories, ingredients } = req.body;
+  if (!name || !calories || !ingredients || !Array.isArray(ingredients)) {
+    return res.status(400).json({ code: 400, message: 'Name, calories, and ingredients (array) are required' });
+  }
+  try {
+    const newMeal = new Meal({
+      userId: req.auth.id,
+      name,
+      calories,
+      ingredients
+    });
+    await newMeal.save();
+    res.status(201).json(newMeal);
+  } catch (error) {
+    res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
+  }
+});
+
+app.put('/api/v1/meals/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, calories, ingredients } = req.body;
+  try {
+    const updatedMeal = await Meal.findByIdAndUpdate(
+      id,
+      { name, calories, ingredients },
+      { new: true }
+    );
+    if (!updatedMeal) {
+      return res.status(404).json({ code: 404, message: 'Meal not found' });
+    }
+    res.status(200).json(updatedMeal);
+  } catch (error) {
+    res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
+  }
+});
+
+app.delete('/api/v1/meals/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const deletedMeal = await Meal.findByIdAndDelete(id);
+    if (!deletedMeal) {
+      return res.status(404).json({ code: 404, message: 'Meal not found' });
+    }
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
