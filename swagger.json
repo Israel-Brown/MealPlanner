@@ -4,11 +4,14 @@
     "title": "Grocery List API",
     "version": "1.0.0"
   },
-  "servers": [
+  "servers":  [
     {
-      "url": "https://mealplanner-y9z9.onrender.com/api/v1"
-               ,
-      "description": "Render server"
+      "url": "https://mealplanner-y9z9.onrender.com/api/v1",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:3000/api/v1",
+      "description": "Local development server"
     }
   ],
   "paths": {

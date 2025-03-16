@@ -8,7 +8,7 @@ const { expressjwt: expressJwt } = require('express-jwt');
 
 const app = express();
 const port = 3000;
-const JWT_SECRET = 'your-secure-secret-key'; 
+const JWT_SECRET = 'your-secure-secret-key';
 
 app.use(express.json());
 app.use(expressJwt({ secret: JWT_SECRET, algorithms: ['HS256'] }).unless({ path: ['/api/v1/register', '/api/v1/login', '/', /^\/api-docs\/?.*/] }));
@@ -17,8 +17,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 const mongoURI = 'mongodb+srv://Jason:341@cluster0.8elw1gh.mongodb.net/MealPlannerPlus';
 mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
+  // useNewUrlParser: true,
+  // useUnifiedTopology: true
 })
   .then(() => console.log('Connected to MongoDB Atlas: mealPlannerPlus'))
   .catch(err => console.error('MongoDB connection error:', err));
@@ -38,6 +38,15 @@ const groceryListSchema = new mongoose.Schema({
   }]
 });
 const GroceryList = mongoose.model('GroceryList', groceryListSchema);
+
+const pantryListSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  items: [{
+    name: { type: String, required: true },
+    quantity: { type: Number, default: 1 }
+  }]
+});
+const PantryList = mongoose.model('PantryList', pantryListSchema);
 
 app.post('/api/v1/register', async (req, res) => {
   const { email, password, name } = req.body;
@@ -159,17 +168,16 @@ app.delete('/api/v1/grocery-list', async (req, res) => {
   }
 });
 
-
 app.get('/api/v1/pantry-list', async (req, res) => {
   try {
-    let PantryList = await PantryList.findOne({ userId: req.auth.id });
-    if (!PantryList) {
-      PantryList = new PantryList({ userId: req.auth.id, items: [] });
-      await PantryList.save();
+    let pantryList = await PantryList.findOne({ userId: req.auth.id });
+    if (!pantryList) {
+      pantryList = new PantryList({ userId: req.auth.id, items: [] });
+      await pantryList.save();
     }
     res.status(200).json({
-      userId: PantryList.userId,
-      items: PantryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
+      userId: pantryList.userId,
+      items: pantryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
     });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
@@ -249,8 +257,8 @@ const mealSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true },
   ingredients: [
-    { 
-      name: { type: String, required: true }, 
+    {
+      name: { type: String, required: true },
       quantity: { type: Number, required: true }
     }
   ],
@@ -264,22 +272,24 @@ const mealSchema = new mongoose.Schema({
   },
   dateCreated: { type: Date, default: Date.now }
 });
- 
+
+
+
 const Meal = mongoose.model('Meal', mealSchema);
- 
+
 // POST - Add Meal
 app.post('/api/v1/meals', async (req, res) => {
   const { name, ingredients, instructions, mealType, calories, macros } = req.body;
- 
+
   // Ensure all required fields are provided
   if (!name || !ingredients || !mealType || !calories || !macros || ingredients.length === 0) {
     return res.status(400).json({ code: 400, message: 'Meal name, ingredients, meal type, calories, and macros are required' });
   }
- 
+
   if (macros && (typeof macros.protein !== 'number' || typeof macros.carbs !== 'number' || typeof macros.fats !== 'number')) {
     return res.status(400).json({ code: 400, message: 'Macros must contain valid numbers for protein, carbs, and fats' });
   }
- 
+
   try {
     const meal = new Meal({
       userId: req.auth.id,  // Assuming JWT gives user ID
@@ -290,14 +300,14 @@ app.post('/api/v1/meals', async (req, res) => {
       calories,
       macros
     });
- 
+
     await meal.save();
     res.status(201).json({ message: 'Meal added successfully', meal });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
   }
 });
- 
+
 // GET - Get Meals for User
 app.get('/api/v1/meals', async (req, res) => {
   try {
@@ -305,60 +315,60 @@ app.get('/api/v1/meals', async (req, res) => {
     if (!meals || meals.length === 0) {
       return res.status(404).json({ code: 404, message: 'No meals found for this user' });
     }
- 
+
     res.status(200).json({ meals });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
   }
 });
- 
+
 // PUT - Update Meal
 app.put('/api/v1/meals/:mealId', async (req, res) => {
   const { mealId } = req.params;
   const { name, ingredients, instructions, mealType, calories, macros } = req.body;
- 
+
   // Validate required fields
   if (!name || !ingredients || !mealType || !calories || !macros || ingredients.length === 0) {
     return res.status(400).json({ code: 400, message: 'Meal name, ingredients, meal type, calories, and macros are required' });
   }
- 
+
   if (macros && (typeof macros.protein !== 'number' || typeof macros.carbs !== 'number' || typeof macros.fats !== 'number')) {
     return res.status(400).json({ code: 400, message: 'Macros must contain valid numbers for protein, carbs, and fats' });
   }
- 
+
   try {
     const meal = await Meal.findOneAndUpdate(
       { _id: mealId, userId: req.auth.id },
       { name, ingredients, instructions, mealType, calories, macros },
       { new: true }
     );
- 
+
     if (!meal) {
       return res.status(404).json({ code: 404, message: 'Meal not found' });
     }
- 
+
     res.status(200).json({ message: 'Meal updated successfully', meal });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
   }
 });
- 
+
 // DELETE - Delete Meal
 app.delete('/api/v1/meals/:mealId', async (req, res) => {
   const { mealId } = req.params;
   try {
     const meal = await Meal.findOneAndDelete({ _id: mealId, userId: req.auth.id });
- 
+
     if (!meal) {
       return res.status(404).json({ code: 404, message: 'Meal not found' });
     }
- 
+
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
   }
 });
- 
+
 
 app.get('/', (req, res) => {
   res.send('Welcome to Grocery List API! Visit /api-docs for documentation.');
