@@ -6,7 +6,8 @@
   },
   "servers": [
     {
-      "url": "https://mealplanner-y9z9.onrender.com/api/v1",
+      "url": "https://mealplanner-y9z9.onrender.com/api/v1"
+               ,
       "description": "Render server"
     }
   ],
