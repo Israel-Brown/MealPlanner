@@ -170,14 +170,14 @@ app.delete('/api/v1/grocery-list', async (req, res) => {
 
 app.get('/api/v1/pantry-list', async (req, res) => {
   try {
-    let pantryList = await PantryList.findOne({ userId: req.auth.id });
-    if (!pantryList) {
-      pantryList = new PantryList({ userId: req.auth.id, items: [] });
-      await pantryList.save();
+    let userPantryList = await PantryList.findOne({ userId: req.auth.id });
+    if (!userPantryList) {
+      userPantryList = new PantryList({ userId: req.auth.id, items: [] });
+      await userPantryList.save();
     }
     res.status(200).json({
-      userId: pantryList.userId,
-      items: pantryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
+      userId: userPantryList.userId,
+      items: userPantryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
     });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
@@ -190,15 +190,15 @@ app.post('/api/v1/pantry-list', async (req, res) => {
     return res.status(400).json({ code: 400, message: 'Items array is required and must not be empty' });
   }
   try {
-    let PantryList = await PantryList.findOne({ userId: req.auth.id });
-    if (!PantryList) {
-      PantryList = new PantryList({ userId: req.auth.id, items: [] });
+    let userPantryList = await PantryList.findOne({ userId: req.auth.id });
+    if (!userPantryList) {
+      userPantryList = new PantryList({ userId: req.auth.id, items: [] });
     }
-    PantryList.items.push(...items.map(item => ({ name: item.name, quantity: item.quantity || 1 })));
-    await groceryList.save();
+    userPantryList.items.push(...items.map(item => ({ name: item.name, quantity: item.quantity || 1 })));
+    await userPantryList.save();
     res.status(201).json({
-      userId: PantryList.userId,
-      items: PantryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
+      userId: userPantryList.userId,
+      items: userPantryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
     });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
@@ -211,19 +211,19 @@ app.put('/api/v1/pantry-list', async (req, res) => {
     return res.status(400).json({ code: 400, message: 'Items array is required' });
   }
   try {
-    let PantryList = await PantryList.findOne({ userId: req.auth.id });
-    if (!PantryList) {
-      PantryList = new PantryList({ userId: req.auth.id, items: [] });
+    let userPantryList = await PantryList.findOne({ userId: req.auth.id });
+    if (!userPantryList) {
+      userPantryList = new PantryList({ userId: req.auth.id, items: [] });
     }
-    PantryList.items = items.map(item => ({
+    userPantryList.items = items.map(item => ({
       _id: item.id || new mongoose.Types.ObjectId(),
       name: item.name,
       quantity: item.quantity || 1
     }));
-    await PantryList.save();
+    await userPantryList.save();
     res.status(200).json({
-      userId: PantryList.userId,
-      items: PantryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
+      userId: userPantryList.userId,
+      items: userPantryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
     });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
@@ -236,16 +236,16 @@ app.delete('/api/v1/pantry-list', async (req, res) => {
     return res.status(400).json({ code: 400, message: 'Item ID is required' });
   }
   try {
-    const PantryList = await PantryList.findOne({ userId: req.auth.id });
-    if (!PantryList) {
+    const userPantryList = await PantryList.findOne({ userId: req.auth.id });
+    if (!userPantryList) {
       return res.status(404).json({ code: 404, message: 'Pantry list not found' });
     }
-    const initialLength = PantryList.items.length;
-    PantryList.items = PantryList.items.filter(item => item._id.toString() !== itemId);
-    if (PantryList.items.length === initialLength) {
+    const initialLength = userPantryList.items.length;
+    userPantryList.items = userPantryList.items.filter(item => item._id.toString() !== itemId);
+    if (userPantryList.items.length === initialLength) {
       return res.status(404).json({ code: 404, message: 'Item not found in Pantry list' });
     }
-    await PantryList.save();
+    await userPantryList.save();
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
