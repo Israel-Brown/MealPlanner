@@ -6,6 +6,8 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const { auth } = require('express-oauth2-jwt-bearer');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger.json');
 
 const app = express();
 app.use(cors());
