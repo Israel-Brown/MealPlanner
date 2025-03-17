@@ -8,19 +8,32 @@ const { expressjwt: expressJwt } = require('express-jwt');
 
 const app = express();
 const port = 3000;
-const JWT_SECRET = 'your-secure-secret-key';
+
+// Check and update your JWT_SECRET value
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secure-secret-key';
+
+// Make sure you're using environment variables in production
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.warn('WARNING: Using default JWT secret in production!');
+}
 
 app.use(express.json());
+
+// Add temporary debugging middleware
+app.use((req, res, next) => {
+  console.log(`Request to ${req.path}`);
+  console.log('Auth header:', req.headers.authorization);
+  next();
+});
+
+// Then your JWT middleware
 app.use(expressJwt({ secret: JWT_SECRET, algorithms: ['HS256'] }).unless({
   path: [
     '/api/v1/register',
     '/api/v1/login',
     '/',
-    /^\/api-docs\/?.*/,
-    // Make sure Swagger UI can access these paths without auth for testing
-    { url: '/api/v1/meals', methods: ['GET'] }, // Allow viewing meals without auth
-    // Optional: Remove these in production
-    { url: /^\/api\/v1\/meals\/.*/, methods: ['GET'] }
+    /^\/api-docs\/?.*/
+    // Remove the meals exclusion
   ]
 }));
 
@@ -317,15 +330,31 @@ app.post('/api/v1/meals', async (req, res) => {
   }
 });
 
-// GET - Get Meals for User
+// GET - Get all user's meals
 app.get('/api/v1/meals', async (req, res) => {
   try {
-    const meals = await Meal.find({ userId: req.auth.id });
-    if (!meals || meals.length === 0) {
-      return res.status(404).json({ code: 404, message: 'No meals found for this user' });
+    const userId = req.auth ? req.auth.id : null;
+
+    if (!userId) {
+      return res.status(401).json({ code: 401, message: 'Unauthorized - Missing or invalid token' });
     }
 
-    res.status(200).json({ meals });
+    // Then use the userId safely
+    const meals = await Meal.find({ userId });
+
+    res.status(200).json({
+      count: meals.length,
+      meals: meals.map(meal => ({
+        id: meal._id,
+        name: meal.name,
+        ingredients: meal.ingredients,
+        instructions: meal.instructions,
+        mealType: meal.mealType,
+        calories: meal.calories,
+        macros: meal.macros,
+        dateCreated: meal.dateCreated
+      }))
+    });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
   }

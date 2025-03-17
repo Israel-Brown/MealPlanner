@@ -481,7 +481,7 @@
     },
     "/meals": {
       "get": {
-        "summary": "Get user's meals",
+        "summary": "Get all user's meals",
         "description": "Retrieves all meals for the authenticated user.",
         "security": [
           {
@@ -490,13 +490,52 @@
         ],
         "responses": {
           "200": {
-            "description": "List of meals"
+            "description": "List of user's meals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "example": 2
+                    },
+                    "meals": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Meal"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
       "post": {
-        "summary": "Add meal",
-        "description": "Adds a new meal to the meal list.",
+        "summary": "Add new meal",
+        "description": "Creates a new meal for the authenticated user.",
         "security": [
           {
             "bearerAuth": []
@@ -524,6 +563,10 @@
                     "type": "array",
                     "items": {
                       "type": "object",
+                      "required": [
+                        "name",
+                        "quantity"
+                      ],
                       "properties": {
                         "name": {
                           "type": "string",
@@ -534,21 +577,7 @@
                           "example": 1
                         }
                       }
-                    },
-                    "example": [
-                      {
-                        "name": "chicken breast",
-                        "quantity": 1
-                      },
-                      {
-                        "name": "romaine lettuce",
-                        "quantity": 1
-                      },
-                      {
-                        "name": "tomatoes",
-                        "quantity": 2
-                      }
-                    ]
+                    }
                   },
                   "instructions": {
                     "type": "string",
@@ -597,17 +626,46 @@
         },
         "responses": {
           "201": {
-            "description": "Meal added successfully",
+            "description": "Meal created successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Meal"
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Meal added successfully"
+                    },
+                    "meal": {
+                      "$ref": "#/components/schemas/Meal"
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid input",
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -622,7 +680,7 @@
     "/meals/{mealId}": {
       "put": {
         "summary": "Update meal",
-        "description": "Updates an existing meal in the meal list.",
+        "description": "Updates an existing meal for the authenticated user.",
         "security": [
           {
             "bearerAuth": []
@@ -645,18 +703,77 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "name",
+                  "ingredients",
+                  "mealType",
+                  "calories",
+                  "macros"
+                ],
                 "properties": {
                   "name": {
                     "type": "string",
                     "example": "Chicken Salad"
                   },
-                  "description": {
+                  "ingredients": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "quantity"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "example": "chicken breast"
+                        },
+                        "quantity": {
+                          "type": "number",
+                          "example": 1
+                        }
+                      }
+                    }
+                  },
+                  "instructions": {
                     "type": "string",
-                    "example": "A healthy chicken salad with fresh vegetables."
+                    "example": "Mix all ingredients together and serve chilled."
+                  },
+                  "mealType": {
+                    "type": "string",
+                    "enum": [
+                      "breakfast",
+                      "lunch",
+                      "dinner",
+                      "snack"
+                    ],
+                    "example": "lunch"
                   },
                   "calories": {
                     "type": "number",
                     "example": 350
+                  },
+                  "macros": {
+                    "type": "object",
+                    "required": [
+                      "protein",
+                      "carbs",
+                      "fats"
+                    ],
+                    "properties": {
+                      "protein": {
+                        "type": "number",
+                        "example": 30
+                      },
+                      "carbs": {
+                        "type": "number",
+                        "example": 15
+                      },
+                      "fats": {
+                        "type": "number",
+                        "example": 12
+                      }
+                    }
                   }
                 }
               }
@@ -669,13 +786,52 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Meal"
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Meal updated successfully"
+                    },
+                    "meal": {
+                      "$ref": "#/components/schemas/Meal"
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid input",
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Meal not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -688,7 +844,7 @@
       },
       "delete": {
         "summary": "Delete meal",
-        "description": "Deletes a meal from the meal list.",
+        "description": "Deletes a specific meal for the authenticated user.",
         "security": [
           {
             "bearerAuth": []
@@ -709,8 +865,8 @@
           "204": {
             "description": "Meal deleted successfully"
           },
-          "400": {
-            "description": "Invalid input (e.g., missing mealId)",
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
@@ -721,6 +877,16 @@
           },
           "404": {
             "description": "Meal not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
             "content": {
               "application/json": {
                 "schema": {
