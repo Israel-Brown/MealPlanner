@@ -11,7 +11,18 @@ const port = 3000;
 const JWT_SECRET = 'your-secure-secret-key';
 
 app.use(express.json());
-app.use(expressJwt({ secret: JWT_SECRET, algorithms: ['HS256'] }).unless({ path: ['/api/v1/register', '/api/v1/login', '/', /^\/api-docs\/?.*/] }));
+app.use(expressJwt({ secret: JWT_SECRET, algorithms: ['HS256'] }).unless({
+  path: [
+    '/api/v1/register',
+    '/api/v1/login',
+    '/',
+    /^\/api-docs\/?.*/,
+    // Make sure Swagger UI can access these paths without auth for testing
+    { url: '/api/v1/meals', methods: ['GET'] }, // Allow viewing meals without auth
+    // Optional: Remove these in production
+    { url: /^\/api\/v1\/meals\/.*/, methods: ['GET'] }
+  ]
+}));
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
@@ -263,7 +274,7 @@ const mealSchema = new mongoose.Schema({
     }
   ],
   instructions: { type: String },
-  mealType: { type: String, enum: ['Breakfast', 'Lunch', 'Dinner', 'Snack'], required: true },
+  mealType: { type: String, enum: ['breakfast', 'lunch', 'dinner', 'snack'], required: true },
   calories: { type: Number, required: true }, // Added calories
   macros: {
     protein: { type: Number, required: true },  // Protein
@@ -272,8 +283,6 @@ const mealSchema = new mongoose.Schema({
   },
   dateCreated: { type: Date, default: Date.now }
 });
-
-
 
 const Meal = mongoose.model('Meal', mealSchema);
 

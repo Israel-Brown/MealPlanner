@@ -1,10 +1,10 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Grocery List API",
+    "title": "Meal Planner API",
     "version": "1.0.0"
   },
-  "servers":  [
+  "servers": [
     {
       "url": "https://mealplanner-y9z9.onrender.com/api/v1",
       "description": "Production server"
@@ -479,6 +479,259 @@
         }
       }
     },
+    "/meals": {
+      "get": {
+        "summary": "Get user's meals",
+        "description": "Retrieves all meals for the authenticated user.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of meals"
+          }
+        }
+      },
+      "post": {
+        "summary": "Add meal",
+        "description": "Adds a new meal to the meal list.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "ingredients",
+                  "mealType",
+                  "calories",
+                  "macros"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Chicken Salad"
+                  },
+                  "ingredients": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "example": "chicken breast"
+                        },
+                        "quantity": {
+                          "type": "number",
+                          "example": 1
+                        }
+                      }
+                    },
+                    "example": [
+                      {
+                        "name": "chicken breast",
+                        "quantity": 1
+                      },
+                      {
+                        "name": "romaine lettuce",
+                        "quantity": 1
+                      },
+                      {
+                        "name": "tomatoes",
+                        "quantity": 2
+                      }
+                    ]
+                  },
+                  "instructions": {
+                    "type": "string",
+                    "example": "Mix all ingredients together and serve chilled."
+                  },
+                  "mealType": {
+                    "type": "string",
+                    "enum": [
+                      "breakfast",
+                      "lunch",
+                      "dinner",
+                      "snack"
+                    ],
+                    "example": "lunch"
+                  },
+                  "calories": {
+                    "type": "number",
+                    "example": 350
+                  },
+                  "macros": {
+                    "type": "object",
+                    "required": [
+                      "protein",
+                      "carbs",
+                      "fats"
+                    ],
+                    "properties": {
+                      "protein": {
+                        "type": "number",
+                        "example": 30
+                      },
+                      "carbs": {
+                        "type": "number",
+                        "example": 15
+                      },
+                      "fats": {
+                        "type": "number",
+                        "example": 12
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Meal added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meal"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meals/{mealId}": {
+      "put": {
+        "summary": "Update meal",
+        "description": "Updates an existing meal in the meal list.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "mealId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the meal to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Chicken Salad"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "A healthy chicken salad with fresh vegetables."
+                  },
+                  "calories": {
+                    "type": "number",
+                    "example": 350
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Meal updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meal"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete meal",
+        "description": "Deletes a meal from the meal list.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "mealId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the meal to delete"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Meal deleted successfully"
+          },
+          "400": {
+            "description": "Invalid input (e.g., missing mealId)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Meal not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/meals/{id}": {
       "get": {
         "summary": "Get meals",
@@ -841,19 +1094,61 @@
         "properties": {
           "id": {
             "type": "string",
-            "example": "12345"
+            "example": "60d21b4667d0d8992e610c85"
           },
           "name": {
             "type": "string",
             "example": "Chicken Salad"
           },
-          "description": {
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "chicken breast"
+                },
+                "quantity": {
+                  "type": "number",
+                  "example": 1
+                }
+              }
+            }
+          },
+          "instructions": {
             "type": "string",
-            "example": "A healthy chicken salad with fresh vegetables."
+            "example": "Mix all ingredients together and serve chilled."
+          },
+          "mealType": {
+            "type": "string",
+            "example": "lunch"
           },
           "calories": {
             "type": "number",
             "example": 350
+          },
+          "macros": {
+            "type": "object",
+            "properties": {
+              "protein": {
+                "type": "number",
+                "example": 30
+              },
+              "carbs": {
+                "type": "number",
+                "example": 15
+              },
+              "fats": {
+                "type": "number",
+                "example": 12
+              }
+            }
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-03-16T12:30:45Z"
           }
         }
       },
