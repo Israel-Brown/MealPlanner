@@ -48,7 +48,14 @@ mongoose.connect(mongoURI, {
   .catch(err => console.error('MongoDB connection error:', err));
 
 const userSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true, // This will automatically convert email to lowercase
+    match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email address']
+  },
   password: { type: String, required: true },
   name: { type: String, required: true }
 });
@@ -78,11 +85,15 @@ app.post('/api/v1/register', async (req, res) => {
     return res.status(400).json({ code: 400, message: 'Email, password, and name are required' });
   }
   try {
-    const existingUser = await User.findOne({ email });
+    // Convert to lowercase when checking for existing users
+    const normalizedEmail = email.toLowerCase();
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ code: 400, message: 'Email already exists' });
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
+    // The email will automatically be saved as lowercase due to schema setting
     const newUser = new User({ email, password: hashedPassword, name });
     await newUser.save();
     res.status(201).json({ id: newUser._id, email: newUser.email, name: newUser.name });
@@ -97,7 +108,9 @@ app.post('/api/v1/login', async (req, res) => {
     return res.status(400).json({ code: 400, message: 'Email and password are required' });
   }
   try {
-    const user = await User.findOne({ email });
+    // Convert to lowercase when finding user
+    const normalizedEmail = email.toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ code: 401, message: 'Invalid credentials' });
     }
