@@ -5,6 +5,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { expressjwt: expressJwt } = require('express-jwt');
+const path = require('path');
+const { connectToDatabase } = require('./database');
 
 const app = express();
 const port = 3000;
@@ -18,22 +20,46 @@ if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
 }
 
 app.use(express.json());
+app.use(express.static('public'));
 
-// Add temporary debugging middleware
+// Enhance your debugging middleware
 app.use((req, res, next) => {
-  console.log(`Request to ${req.path}`);
-  console.log('Auth header:', req.headers.authorization);
+  console.log(`Request to ${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  if (req.headers.authorization) {
+    console.log('Auth header present:', req.headers.authorization.substring(0, 20) + '...');
+  } else {
+    console.log('NO Auth header found');
+  }
   next();
 });
 
-// Then your JWT middleware
+// Update your JWT middleware to exclude all HTML pages
 app.use(expressJwt({ secret: JWT_SECRET, algorithms: ['HS256'] }).unless({
   path: [
     '/api/v1/register',
     '/api/v1/login',
     '/',
-    /^\/api-docs\/?.*/
-    // Remove the meals exclusion
+    '/index.html',
+    '/login.html',
+    '/register.html',
+    '/meals.html',  // Add this
+    '/grocery-list.html',  // Add this
+    '/pantry.html',  // Add this
+    '/test-auth.html',  // Add this
+    '/css/style.css',
+    '/css/navigation.css',
+    '/css/auth.css',
+    '/js/navigation.js',
+    '/js/auth.js',
+    '/js/login.js',
+    '/js/register.js',
+    '/js/api.js',
+    /^\/api-docs\/?.*/,
+    /^\/css\/.*/,
+    /^\/js\/.*/,
+    /^\/images\/.*/,
+    /\.html$/  // Add this to match all HTML files
   ]
 }));
 
@@ -420,16 +446,18 @@ app.delete('/api/v1/meals/:mealId', async (req, res) => {
   }
 });
 
-
+// Optional: Redirect root to the frontend
 app.get('/', (req, res) => {
-  res.send('Welcome to Grocery List API! Visit /api-docs for documentation.');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Only start the server if this file is run directly
-if (require.main === module) {
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-    console.log(`Swagger UI available at http://localhost:${port}/api-docs`);
+// Only connect to the database and start the server if this is not being run in a test
+if (process.env.NODE_ENV !== 'test') {
+  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mealPlannerPlus';
+  connectToDatabase(MONGODB_URI).then(() => {
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
   });
 }
 

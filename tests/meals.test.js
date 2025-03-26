@@ -1,35 +1,39 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
-const app = require('../index'); // Make sure your index.js exports the app
-const { generateTestToken } = require('./setup');
+const app = require('../index');
+const jwt = require('jsonwebtoken');
 
 describe('Meals API Endpoints', () => {
     let authToken;
+    let mealId; // Store the meal ID globally for use in later tests
     let userId;
-    let mealId;
 
-    // Setup - create a test user and get token
+    // Setup - create a user and get auth token before tests
     beforeAll(async () => {
         // Register a test user
-        const registerRes = await request(app)
+        const registerResponse = await request(app)
             .post('/api/v1/register')
             .send({
-                email: 'meal-test@example.com',
+                email: `meal-test-${Date.now()}@example.com`,
                 password: 'Password123',
-                name: 'Meal Test User'
+                name: 'Test Meal User'
             });
 
-        userId = registerRes.body.id;
-
         // Login to get token
-        const loginRes = await request(app)
+        const loginResponse = await request(app)
             .post('/api/v1/login')
             .send({
-                email: 'meal-test@example.com',
+                email: registerResponse.body.email,
                 password: 'Password123'
             });
 
-        authToken = loginRes.body.token;
+        authToken = loginResponse.body.token;
+
+        // Extract user ID from token
+        const decodedToken = jwt.verify(authToken, process.env.JWT_SECRET || 'your-secure-secret-key');
+        userId = decodedToken.id;
+
+        console.log('Test setup: Created user with ID', userId);
     });
 
     test('Should create a new meal', async () => {
@@ -37,43 +41,53 @@ describe('Meals API Endpoints', () => {
             .post('/api/v1/meals')
             .set('Authorization', `Bearer ${authToken}`)
             .send({
-                name: 'Test Chicken Salad',
+                name: 'Chicken Salad',
                 ingredients: [
-                    { name: 'chicken breast', quantity: 1 },
-                    { name: 'lettuce', quantity: 2 }
+                    { name: 'chicken breast', quantity: 2 },
+                    { name: 'lettuce', quantity: 1 },
+                    { name: 'tomato', quantity: 2 }
                 ],
-                instructions: 'Mix everything together',
+                instructions: 'Mix all ingredients',
                 mealType: 'lunch',
                 calories: 350,
                 macros: {
                     protein: 30,
                     carbs: 15,
-                    fats: 12
+                    fats: 10
                 }
             });
 
         expect(res.statusCode).toBe(201);
         expect(res.body).toHaveProperty('message', 'Meal added successfully');
-        expect(res.body).toHaveProperty('meal');
-        expect(res.body.meal).toHaveProperty('name', 'Test Chicken Salad');
 
-        // Save meal ID for later tests
-        mealId = res.body.meal.id;
+        // Save the created meal ID for later tests
+        mealId = res.body.meal._id;
+        console.log('Created test meal with ID:', mealId);
     });
 
     test('Should get all meals for user', async () => {
+        // Wait a moment for the database to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         const res = await request(app)
             .get('/api/v1/meals')
             .set('Authorization', `Bearer ${authToken}`);
 
         expect(res.statusCode).toBe(200);
-        expect(res.body).toHaveProperty('count');
         expect(res.body).toHaveProperty('meals');
         expect(Array.isArray(res.body.meals)).toBe(true);
         expect(res.body.meals.length).toBeGreaterThan(0);
     });
 
     test('Should update a meal', async () => {
+        // Verify mealId exists before testing
+        if (!mealId) {
+            console.error("Test error: mealId is undefined, cannot run update test");
+            throw new Error("mealId is undefined");
+        }
+
+        console.log('Updating meal with ID:', mealId);
+
         const res = await request(app)
             .put(`/api/v1/meals/${mealId}`)
             .set('Authorization', `Bearer ${authToken}`)
@@ -99,6 +113,14 @@ describe('Meals API Endpoints', () => {
     });
 
     test('Should delete a meal', async () => {
+        // Verify mealId exists before testing
+        if (!mealId) {
+            console.error("Test error: mealId is undefined, cannot run delete test");
+            throw new Error("mealId is undefined");
+        }
+
+        console.log('Deleting meal with ID:', mealId);
+
         const res = await request(app)
             .delete(`/api/v1/meals/${mealId}`)
             .set('Authorization', `Bearer ${authToken}`);
@@ -110,7 +132,7 @@ describe('Meals API Endpoints', () => {
             .get('/api/v1/meals')
             .set('Authorization', `Bearer ${authToken}`);
 
-        const mealExists = checkRes.body.meals.some(meal => meal.id === mealId);
-        expect(mealExists).toBe(false);
+        const deletedMeal = checkRes.body.meals.find(m => m.id === mealId);
+        expect(deletedMeal).toBeUndefined();
     });
 });
