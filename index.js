@@ -7,53 +7,50 @@ const jwt = require('jsonwebtoken');
 const { expressjwt: expressJwt } = require('express-jwt');
 
 const app = express();
-const port = 3000;
-
-// Check and update your JWT_SECRET value
+const port = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secure-secret-key';
 
-// Make sure you're using environment variables in production
 if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
   console.warn('WARNING: Using default JWT secret in production!');
 }
 
 app.use(express.json());
 
-// Add temporary debugging middleware
+// Debugging middleware
 app.use((req, res, next) => {
   console.log(`Request to ${req.path}`);
   console.log('Auth header:', req.headers.authorization);
   next();
 });
 
-// Then your JWT middleware
+// JWT middleware - exclude public routes
 app.use(expressJwt({ secret: JWT_SECRET, algorithms: ['HS256'] }).unless({
   path: [
     '/api/v1/register',
     '/api/v1/login',
     '/',
     /^\/api-docs\/?.*/
-    // Remove the meals exclusion
   ]
 }));
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-const mongoURI = 'mongodb+srv://Jason:341@cluster0.8elw1gh.mongodb.net/MealPlannerPlus';
-mongoose.connect(mongoURI, {
-  // useNewUrlParser: true,
-  // useUnifiedTopology: true
-})
-  .then(() => console.log('Connected to MongoDB Atlas: mealPlannerPlus'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// MongoDB connection
+const mongoURI = process.env.MONGO_URI || 'mongodb+srv://Jason:341@cluster0.8elw1gh.mongodb.net/MealPlannerPlus?retryWrites=true&w=majority';
+if (process.env.NODE_ENV !== 'test') {
+  mongoose.connect(mongoURI)
+    .then(() => console.log('Connected to MongoDB Atlas: MealPlannerPlus'))
+    .catch(err => console.error('MongoDB connection error:', err));
+}
 
+// Schemas
 const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
     unique: true,
     trim: true,
-    lowercase: true, // This will automatically convert email to lowercase
+    lowercase: true,
     match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email address']
   },
   password: { type: String, required: true },
@@ -79,21 +76,38 @@ const pantryListSchema = new mongoose.Schema({
 });
 const PantryList = mongoose.model('PantryList', pantryListSchema);
 
+const mealSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  name: { type: String, required: true },
+  ingredients: [{
+    name: { type: String, required: true },
+    quantity: { type: Number, required: true }
+  }],
+  instructions: { type: String },
+  mealType: { type: String, enum: ['breakfast', 'lunch', 'dinner', 'snack'], required: true },
+  calories: { type: Number, required: true },
+  macros: {
+    protein: { type: Number, required: true },
+    carbs: { type: Number, required: true },
+    fats: { type: Number, required: true }
+  },
+  dateCreated: { type: Date, default: Date.now }
+});
+const Meal = mongoose.model('Meal', mealSchema);
+
+// Authentication Endpoints
 app.post('/api/v1/register', async (req, res) => {
   const { email, password, name } = req.body;
   if (!email || !password || !name) {
     return res.status(400).json({ code: 400, message: 'Email, password, and name are required' });
   }
   try {
-    // Convert to lowercase when checking for existing users
     const normalizedEmail = email.toLowerCase();
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ code: 400, message: 'Email already exists' });
     }
-
     const hashedPassword = await bcrypt.hash(password, 10);
-    // The email will automatically be saved as lowercase due to schema setting
     const newUser = new User({ email, password: hashedPassword, name });
     await newUser.save();
     res.status(201).json({ id: newUser._id, email: newUser.email, name: newUser.name });
@@ -108,7 +122,6 @@ app.post('/api/v1/login', async (req, res) => {
     return res.status(400).json({ code: 400, message: 'Email and password are required' });
   }
   try {
-    // Convert to lowercase when finding user
     const normalizedEmail = email.toLowerCase();
     const user = await User.findOne({ email: normalizedEmail });
     if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -121,6 +134,7 @@ app.post('/api/v1/login', async (req, res) => {
   }
 });
 
+// Grocery List Endpoints
 app.get('/api/v1/grocery-list', async (req, res) => {
   try {
     let groceryList = await GroceryList.findOne({ userId: req.auth.id });
@@ -205,16 +219,17 @@ app.delete('/api/v1/grocery-list', async (req, res) => {
   }
 });
 
+// Pantry List Endpoints
 app.get('/api/v1/pantry-list', async (req, res) => {
   try {
-    let userPantryList = await PantryList.findOne({ userId: req.auth.id });
-    if (!userPantryList) {
-      userPantryList = new PantryList({ userId: req.auth.id, items: [] });
-      await userPantryList.save();
+    let pantryList = await PantryList.findOne({ userId: req.auth.id });
+    if (!pantryList) {
+      pantryList = new PantryList({ userId: req.auth.id, items: [] });
+      await pantryList.save();
     }
     res.status(200).json({
-      userId: userPantryList.userId,
-      items: userPantryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
+      userId: pantryList.userId,
+      items: pantryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
     });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
@@ -227,15 +242,15 @@ app.post('/api/v1/pantry-list', async (req, res) => {
     return res.status(400).json({ code: 400, message: 'Items array is required and must not be empty' });
   }
   try {
-    let userPantryList = await PantryList.findOne({ userId: req.auth.id });
-    if (!userPantryList) {
-      userPantryList = new PantryList({ userId: req.auth.id, items: [] });
+    let pantryList = await PantryList.findOne({ userId: req.auth.id });
+    if (!pantryList) {
+      pantryList = new PantryList({ userId: req.auth.id, items: [] });
     }
-    userPantryList.items.push(...items.map(item => ({ name: item.name, quantity: item.quantity || 1 })));
-    await userPantryList.save();
+    pantryList.items.push(...items.map(item => ({ name: item.name, quantity: item.quantity || 1 })));
+    await pantryList.save();
     res.status(201).json({
-      userId: userPantryList.userId,
-      items: userPantryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
+      userId: pantryList.userId,
+      items: pantryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
     });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
@@ -248,19 +263,19 @@ app.put('/api/v1/pantry-list', async (req, res) => {
     return res.status(400).json({ code: 400, message: 'Items array is required' });
   }
   try {
-    let userPantryList = await PantryList.findOne({ userId: req.auth.id });
-    if (!userPantryList) {
-      userPantryList = new PantryList({ userId: req.auth.id, items: [] });
+    let pantryList = await PantryList.findOne({ userId: req.auth.id });
+    if (!pantryList) {
+      pantryList = new PantryList({ userId: req.auth.id, items: [] });
     }
-    userPantryList.items = items.map(item => ({
+    pantryList.items = items.map(item => ({
       _id: item.id || new mongoose.Types.ObjectId(),
       name: item.name,
       quantity: item.quantity || 1
     }));
-    await userPantryList.save();
+    await pantryList.save();
     res.status(200).json({
-      userId: userPantryList.userId,
-      items: userPantryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
+      userId: pantryList.userId,
+      items: pantryList.items.map(item => ({ id: item._id, name: item.name, quantity: item.quantity }))
     });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
@@ -273,61 +288,34 @@ app.delete('/api/v1/pantry-list', async (req, res) => {
     return res.status(400).json({ code: 400, message: 'Item ID is required' });
   }
   try {
-    const userPantryList = await PantryList.findOne({ userId: req.auth.id });
-    if (!userPantryList) {
+    const pantryList = await PantryList.findOne({ userId: req.auth.id });
+    if (!pantryList) {
       return res.status(404).json({ code: 404, message: 'Pantry list not found' });
     }
-    const initialLength = userPantryList.items.length;
-    userPantryList.items = userPantryList.items.filter(item => item._id.toString() !== itemId);
-    if (userPantryList.items.length === initialLength) {
-      return res.status(404).json({ code: 404, message: 'Item not found in Pantry list' });
+    const initialLength = pantryList.items.length;
+    pantryList.items = pantryList.items.filter(item => item._id.toString() !== itemId);
+    if (pantryList.items.length === initialLength) {
+      return res.status(404).json({ code: 404, message: 'Item not found in pantry list' });
     }
-    await userPantryList.save();
+    await pantryList.save();
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
   }
 });
 
-// Meal Schema
-const mealSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  name: { type: String, required: true },
-  ingredients: [
-    {
-      name: { type: String, required: true },
-      quantity: { type: Number, required: true }
-    }
-  ],
-  instructions: { type: String },
-  mealType: { type: String, enum: ['breakfast', 'lunch', 'dinner', 'snack'], required: true },
-  calories: { type: Number, required: true }, // Added calories
-  macros: {
-    protein: { type: Number, required: true },  // Protein
-    carbs: { type: Number, required: true },    // Carbs
-    fats: { type: Number, required: true }      // Fats
-  },
-  dateCreated: { type: Date, default: Date.now }
-});
-
-const Meal = mongoose.model('Meal', mealSchema);
-
-// POST - Add Meal
+// Meal Endpoints
 app.post('/api/v1/meals', async (req, res) => {
   const { name, ingredients, instructions, mealType, calories, macros } = req.body;
-
-  // Ensure all required fields are provided
   if (!name || !ingredients || !mealType || !calories || !macros || ingredients.length === 0) {
     return res.status(400).json({ code: 400, message: 'Meal name, ingredients, meal type, calories, and macros are required' });
   }
-
   if (macros && (typeof macros.protein !== 'number' || typeof macros.carbs !== 'number' || typeof macros.fats !== 'number')) {
     return res.status(400).json({ code: 400, message: 'Macros must contain valid numbers for protein, carbs, and fats' });
   }
-
   try {
     const meal = new Meal({
-      userId: req.auth.id,  // Assuming JWT gives user ID
+      userId: req.auth.id,
       name,
       ingredients,
       instructions,
@@ -335,26 +323,30 @@ app.post('/api/v1/meals', async (req, res) => {
       calories,
       macros
     });
-
     await meal.save();
-    res.status(201).json({ message: 'Meal added successfully', meal });
+    res.status(201).json({
+      id: meal._id,
+      userId: meal.userId,
+      name: meal.name,
+      ingredients: meal.ingredients,
+      instructions: meal.instructions,
+      mealType: meal.mealType,
+      calories: meal.calories,
+      macros: meal.macros,
+      dateCreated: meal.dateCreated
+    });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
   }
 });
 
-// GET - Get all user's meals
 app.get('/api/v1/meals', async (req, res) => {
   try {
-    const userId = req.auth ? req.auth.id : null;
-
+    const userId = req.auth?.id;
     if (!userId) {
       return res.status(401).json({ code: 401, message: 'Unauthorized - Missing or invalid token' });
     }
-
-    // Then use the userId safely
     const meals = await Meal.find({ userId });
-
     res.status(200).json({
       count: meals.length,
       meals: meals.map(meal => ({
@@ -373,65 +365,62 @@ app.get('/api/v1/meals', async (req, res) => {
   }
 });
 
-// PUT - Update Meal
 app.put('/api/v1/meals/:mealId', async (req, res) => {
   const { mealId } = req.params;
   const { name, ingredients, instructions, mealType, calories, macros } = req.body;
-
-  // Validate required fields
   if (!name || !ingredients || !mealType || !calories || !macros || ingredients.length === 0) {
     return res.status(400).json({ code: 400, message: 'Meal name, ingredients, meal type, calories, and macros are required' });
   }
-
   if (macros && (typeof macros.protein !== 'number' || typeof macros.carbs !== 'number' || typeof macros.fats !== 'number')) {
     return res.status(400).json({ code: 400, message: 'Macros must contain valid numbers for protein, carbs, and fats' });
   }
-
   try {
     const meal = await Meal.findOneAndUpdate(
       { _id: mealId, userId: req.auth.id },
       { name, ingredients, instructions, mealType, calories, macros },
       { new: true }
     );
-
     if (!meal) {
       return res.status(404).json({ code: 404, message: 'Meal not found' });
     }
-
-    res.status(200).json({ message: 'Meal updated successfully', meal });
+    res.status(200).json({
+      id: meal._id,
+      userId: meal.userId,
+      name: meal.name,
+      ingredients: meal.ingredients,
+      instructions: meal.instructions,
+      mealType: meal.mealType,
+      calories: meal.calories,
+      macros: meal.macros,
+      dateCreated: meal.dateCreated
+    });
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
   }
 });
 
-// DELETE - Delete Meal
 app.delete('/api/v1/meals/:mealId', async (req, res) => {
   const { mealId } = req.params;
   try {
     const meal = await Meal.findOneAndDelete({ _id: mealId, userId: req.auth.id });
-
     if (!meal) {
       return res.status(404).json({ code: 404, message: 'Meal not found' });
     }
-
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ code: 500, message: 'Server error: ' + error.message });
   }
 });
 
-
 app.get('/', (req, res) => {
-  res.send('Welcome to Grocery List API! Visit /api-docs for documentation.');
+  res.send('Welcome to Meal Planner API! Visit /api-docs for documentation.');
 });
 
-// Only start the server if this file is run directly
 if (require.main === module) {
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
-    console.log(`Swagger UI available at http://localhost:${port}/api-docs`);
+    console.log(`Swagger UI available at ${port === 3000 ? 'http://localhost:3000/api-docs' : '/api-docs'}`);
   });
 }
 
-// Export the app for testing
 module.exports = app;
