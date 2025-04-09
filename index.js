@@ -5,6 +5,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { expressjwt: expressJwt } = require('express-jwt');
+const path = require('path');
+const { connectToDatabase } = require('./database');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,21 +17,28 @@ if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
 }
 
 app.use(express.json());
+app.use(express.static('public'));
 
-// Debugging middleware
+// Add temporary debugging middleware
 app.use((req, res, next) => {
-  console.log(`Request to ${req.path}`);
-  console.log('Auth header:', req.headers.authorization);
+  console.log(`Request to ${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  if (req.headers.authorization) {
+    console.log('Auth header present:', req.headers.authorization.substring(0, 20) + '...');
+  } else {
+    console.log('NO Auth header found');
+  }
   next();
 });
 
-// JWT middleware - exclude public routes
+// Then your JWT middleware
 app.use(expressJwt({ secret: JWT_SECRET, algorithms: ['HS256'] }).unless({
   path: [
     '/api/v1/register',
     '/api/v1/login',
     '/',
     /^\/api-docs\/?.*/
+    // Remove the meals exclusion
   ]
 }));
 
@@ -412,14 +421,16 @@ app.delete('/api/v1/meals/:mealId', async (req, res) => {
   }
 });
 
+
 app.get('/', (req, res) => {
-  res.send('Welcome to Meal Planner API! Visit /api-docs for documentation.');
+  res.send('Welcome to Grocery List API! Visit /api-docs for documentation.');
 });
 
+// Only start the server if this file is run directly
 if (require.main === module) {
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
-    console.log(`Swagger UI available at ${port === 3000 ? 'http://localhost:3000/api-docs' : '/api-docs'}`);
+    console.log(`Swagger UI available at http://localhost:${port}/api-docs`);
   });
 }
 
